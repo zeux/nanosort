@@ -7,7 +7,7 @@
 
 #include <assert.h>
 
-template <typename T, typename Compare = std::less<T>>
+template <typename T, typename Compare = std::less<T> >
 void test_sort(const std::vector<T>& a, Compare comp = std::less<T>())
 {
   std::vector<T> s = a;
