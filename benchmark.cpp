@@ -111,6 +111,8 @@ int main() {
   for (size_t i = 0; i < test.size(); ++i) test[i] = pcg32_random_r(&rng);
   bench("random int", test);
 
+return 0;
+
   for (size_t i = 0; i < test.size(); ++i) test[i] = uint32_t(i);
   bench("sorted int", test);
 

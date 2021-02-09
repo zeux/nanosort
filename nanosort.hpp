@@ -45,7 +45,7 @@ struct IteratorTraits<T*> {
 
 template <typename T>
 NANOSORT_INLINE void swap(T& l, T& r) {
-#if __cplusplus > 199711L
+#if __cplusplus >= 201103L
   T t(static_cast<T&&>(l));
   l = static_cast<T&&>(r);
   r = static_cast<T&&>(t);
@@ -108,7 +108,7 @@ NANOSORT_NOINLINE It partition_rev(T pivot, It first, It last, Compare comp) {
 // inner loop. This is cmp/cmov sequence making the inner loop 2 cycles.
 // TODO: auto, moves
 template <typename It, typename Compare>
-void BubbleSort(It first, It last, Compare comp) {
+NANOSORT_NOINLINE void BubbleSort(It first, It last, Compare comp) {
   auto n = last - first;
   for (auto i = n; i > 1; i--) {
     auto x = first[0];
@@ -129,7 +129,7 @@ void BubbleSort(It first, It last, Compare comp) {
 // it's not cutting number of comparisons.
 // TODO: auto, moves
 template <typename It, typename Compare>
-void BubbleSort2(It first, It last, Compare comp) {
+NANOSORT_NOINLINE void BubbleSort2(It first, It last, Compare comp) {
   auto n = last - first;
   for (auto i = n; i > 1; i -= 2) {
     auto x = first[0];
@@ -150,7 +150,7 @@ void BubbleSort2(It first, It last, Compare comp) {
 }
 
 template <typename It, typename Compare>
-void SelectionSort(It first, It last, Compare comp) {
+NANOSORT_NOINLINE void SelectionSort(It first, It last, Compare comp) {
   size_t n = last - first;
   if (n <= 1) return;
 
@@ -164,13 +164,13 @@ void SelectionSort(It first, It last, Compare comp) {
 }
 
 template <typename It, typename Compare>
-void CocktailSort(It first, It last, Compare comp) {
-  int n = last - first;
+NANOSORT_NOINLINE void CocktailSort(It first, It last, Compare comp) {
+  size_t n = last - first;
   if (n <= 1) return;
   auto arr = &*first;
-  for (int i = 0, j = n - 1; i < j; i++, j--) {
-    int min = i, max = i;
-    for (int k = i + 1; k <= j; k++) {
+  for (size_t i = 0, j = n - 1; i < j; i++, j--) {
+    size_t min = i, max = i;
+    for (size_t k = i + 1; k <= j; k++) {
       max = comp(arr[max], arr[k]) ? k : max;
       min = comp(arr[k], arr[min]) ? k : min;
     }
@@ -186,7 +186,7 @@ void CocktailSort(It first, It last, Compare comp) {
 }
 
 template <typename T, typename It, typename Compare>
-void InsertionSort(It begin, It end, Compare comp) {
+NANOSORT_NOINLINE void InsertionSort(It begin, It end, Compare comp) {
   if (begin == end) return;
 
   for (It it = begin + 1; it != end; ++it) {
@@ -201,7 +201,7 @@ void InsertionSort(It begin, It end, Compare comp) {
 }
 
 template <typename It, typename Compare>
-void GnomeSort(It begin, It end, Compare comp) {
+NANOSORT_NOINLINE void GnomeSort(It begin, It end, Compare comp) {
   It pos = begin;
   while (pos != end) {
     if (pos == begin || !comp(*pos, *(pos - 1)))
@@ -214,7 +214,7 @@ void GnomeSort(It begin, It end, Compare comp) {
 }
 
 template <typename It, typename Compare>
-void BubbleSortW(It first, It last, Compare comp) {
+NANOSORT_NOINLINE void BubbleSortW(It first, It last, Compare comp) {
   size_t n = last - first;
   while (n > 1) {
     size_t newn = 0;
