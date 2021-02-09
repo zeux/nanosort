@@ -229,6 +229,47 @@ NANOSORT_NOINLINE void BubbleSortW(It first, It last, Compare comp) {
 }
 
 template <typename T, typename It, typename Compare>
+NANOSORT_NOINLINE void NetworkSort(It first, It last, Compare comp) {
+#define NANOSORT_PAIR(i, j) if (comp(e##i, e##j)) swap(e##i, e##j)
+
+  size_t n = last - first;
+
+  T e0, e1, e2, e3;
+
+  switch (n) {
+    case 4:
+      e0 = first[0], e1 = first[1], e2 = first[2], e3 = first[3];
+      NANOSORT_PAIR(0, 1);
+      NANOSORT_PAIR(2, 3);
+      NANOSORT_PAIR(0, 2);
+      NANOSORT_PAIR(1, 3);
+      NANOSORT_PAIR(1, 2);
+      first[0] = e0, first[1] = e1, first[2] = e2, first[3] = e3;
+      break;
+
+    case 3:
+      e0 = first[0], e1 = first[1], e2 = first[2];
+      NANOSORT_PAIR(0, 1);
+      NANOSORT_PAIR(0, 2);
+      NANOSORT_PAIR(1, 2);
+      first[0] = e0, first[1] = e1, first[2] = e2;
+      break;
+
+    case 2:
+      e0 = first[0], e1 = first[1];
+      NANOSORT_PAIR(0, 1);
+      first[0] = e0, first[1] = e1;
+      break;
+
+    default:
+    ;
+  }
+
+#undef NANOSORT_PAIR
+}
+
+
+template <typename T, typename It, typename Compare>
 NANOSORT_NOINLINE void sort(It first, It last, Compare comp) {
   const size_t kSmallSortThreshold = 16;
 
