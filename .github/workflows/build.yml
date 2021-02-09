@@ -1,0 +1,28 @@
+name: build
+
+on: [push, pull_request]
+
+jobs:
+  unix:
+    strategy:
+      matrix:
+        os: [ubuntu, macos]
+    name: ${{matrix.os}}
+    runs-on: ${{matrix.os}}-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: test
+      run: |
+        g++ tests.cpp -o tests
+        ./tests
+
+  windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: ilammy/msvc-dev-cmd@v1
+    - name: test
+      shell: bash # necessary for fail-fast
+      run: |
+        cl tests.cpp
+        tests
