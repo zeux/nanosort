@@ -104,26 +104,6 @@ NANOSORT_NOINLINE It partition_rev(T pivot, It first, It last, Compare comp) {
   return res;
 }
 
-// TODO: do we need this?
-template <typename T, typename It, typename Compare>
-NANOSORT_NOINLINE void insertion_sort(It begin, It end, Compare comp) {
-  if (begin == end) return;
-
-  for (It it = begin + 1; it != end; ++it) {
-    T val = *it;
-    It hole = it;
-
-    // move hole backwards
-    while (hole > begin && comp(val, *(hole - 1))) {
-      *hole = *(hole - 1);
-      hole--;
-    }
-
-    // fill hole with element
-    *hole = val;
-  }
-}
-
 // BubbleSort works better it has N(N-1)/2 stores, but x is updated in the
 // inner loop. This is cmp/cmov sequence making the inner loop 2 cycles.
 // TODO: auto, moves
@@ -166,6 +146,85 @@ void BubbleSort2(It first, It last, Compare comp) {
     }
     first[i - 2] = x;
     first[i - 1] = y;
+  }
+}
+
+template <typename It, typename Compare>
+void SelectionSort(It first, It last, Compare comp) {
+  size_t n = last - first;
+  if (n <= 1) return;
+
+  for (size_t i = 0; i < n - 1; i++) {
+    size_t k = i;
+    for (size_t j = i + 1; j < n; j++) {
+      k = comp(first[j], first[k]) ? j : k;
+    }
+    swap(first[i], first[k]);
+  }
+}
+
+template <typename It, typename Compare>
+void CocktailSort(It first, It last, Compare comp) {
+  int n = last - first;
+  if (n <= 1) return;
+  auto arr = &*first;
+  for (int i = 0, j = n - 1; i < j; i++, j--) {
+    int min = i, max = i;
+    for (int k = i + 1; k <= j; k++) {
+      max = comp(arr[max], arr[k]) ? k : max;
+      min = comp(arr[k], arr[min]) ? k : min;
+    }
+
+    // shifting the min.
+    swap(arr[i], arr[min]);
+
+    // Shifting the max. The equal condition
+    // happens if we shifted the max to arr[min_i]
+    // in the previous swap.
+    swap(arr[j], arr[i == max ? min : max]);
+  }
+}
+
+template <typename T, typename It, typename Compare>
+void InsertionSort(It begin, It end, Compare comp) {
+  if (begin == end) return;
+
+  for (It it = begin + 1; it != end; ++it) {
+    T val = *it;
+    It hole = it;
+    while (hole > begin && comp(val, *(hole - 1))) {
+      *hole = *(hole - 1);
+      hole--;
+    }
+    *hole = val;
+  }
+}
+
+template <typename It, typename Compare>
+void GnomeSort(It begin, It end, Compare comp) {
+  It pos = begin;
+  while (pos != end) {
+    if (pos == begin || !comp(*pos, *(pos - 1)))
+      pos++;
+    else {
+      swap(*pos, *(pos - 1));
+      pos--;
+    }
+  }
+}
+
+template <typename It, typename Compare>
+void BubbleSortW(It first, It last, Compare comp) {
+  size_t n = last - first;
+  while (n > 1) {
+    size_t newn = 0;
+    for (size_t i = 1; i < n; ++i) {
+      if (comp(first[i], first[i - 1])) {
+        swap(first[i], first[i - 1]);
+        newn = i;
+      }
+    }
+    n = newn;
   }
 }
 
