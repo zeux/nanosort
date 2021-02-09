@@ -1,3 +1,4 @@
+// This file is part of nanosort library; see nanosort.hpp for version/license details
 #include <cmath>
 #include <string>
 #include <vector>
