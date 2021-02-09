@@ -25,4 +25,4 @@ jobs:
       shell: bash # necessary for fail-fast
       run: |
         cl tests.cpp
-        tests
+        ./tests
