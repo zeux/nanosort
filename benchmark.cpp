@@ -1,4 +1,4 @@
-// This file is part of nanosort library; see nanosort.hpp for version/license details
+// This file is part of nanosort library; see nanosort.hpp for license details
 #include <cmath>
 #include <string>
 #include <vector>
@@ -78,8 +78,7 @@ void bench(const std::string &name, const std::vector<T> &data) {
       name + ", std:sort", [](auto beg, auto end) { std::sort(beg, end); },
       data);
   bench(
-      name + ", pdqsort ",
-      [](auto beg, auto end) { pdqsort(beg, end); }, data);
+      name + ", pdqsort ", [](auto beg, auto end) { pdqsort(beg, end); }, data);
   bench(
       name + ", expgrbns",
       [](auto beg, auto end) { exp_gerbens::QuickSort(beg, end); }, data);
@@ -121,7 +120,8 @@ int main() {
   for (size_t i = 0; i < test.size(); ++i) test[i] = uint32_t(test.size() - i);
   bench("sortre int", test);
 
-  for (size_t i = 0; i < test.size(); ++i) test[i] = pcg32_random_r(&rng) % 1000;
+  for (size_t i = 0; i < test.size(); ++i)
+    test[i] = pcg32_random_r(&rng) % 1000;
   bench("eq1000 int", test);
 
   std::vector<Pair> test2(test.size());
