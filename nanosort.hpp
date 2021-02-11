@@ -67,6 +67,7 @@ NANOSORT_NOINLINE T median5(It first, It last, Compare comp) {
   T e3 = first[(n >> 2) * 3];
   T e4 = first[n - 1];
 
+  // 5-element median network
   if (comp(e1, e0)) swap(e1, e0);
   if (comp(e4, e3)) swap(e4, e3);
   if (comp(e3, e0)) swap(e3, e0);
@@ -78,6 +79,49 @@ NANOSORT_NOINLINE T median5(It first, It last, Compare comp) {
   if (comp(e2, e1)) swap(e2, e1);
 
   return e2;
+}
+
+// Return median of medians in the array
+template <typename T, typename It, typename Compare>
+NANOSORT_NOINLINE T medianofm(It first, It last, Compare comp) {
+  size_t n = last - first;
+  It a = first;
+
+  while (n >= 3) {
+    size_t i = 0, j = 0;
+
+    // body, groups of 5
+    for (; i + 5 <= n; i += 5) {
+      // 5-element median network
+      if (comp(a[i + 1], a[i + 0])) swap(a[i + 1], a[i + 0]);
+      if (comp(a[i + 4], a[i + 3])) swap(a[i + 4], a[i + 3]);
+      if (comp(a[i + 3], a[i + 0])) swap(a[i + 3], a[i + 0]);
+
+      if (comp(a[i + 1], a[i + 4])) swap(a[i + 1], a[i + 4]);
+      if (comp(a[i + 2], a[i + 1])) swap(a[i + 2], a[i + 1]);
+      if (comp(a[i + 3], a[i + 2])) swap(a[i + 2], a[i + 3]);
+
+      if (comp(a[i + 2], a[i + 1])) swap(a[i + 2], a[i + 1]);
+
+      swap(a[i + 2], a[j++]);
+    }
+
+    // tail
+    if (n - i >= 3) {
+      // 3-element median network
+      if (comp(a[i + 1], a[i + 0])) swap(a[i + 1], a[i + 0]);
+      if (comp(a[i + 2], a[i + 0])) swap(a[i + 2], a[i + 0]);
+      if (comp(a[i + 2], a[i + 1])) swap(a[i + 2], a[i + 1]);
+
+      swap(a[i + 1], a[j++]);
+    } else if (n - i >= 1) {
+      swap(a[i], a[j++]);
+    }
+
+    n = j;
+  }
+
+  return a[0];
 }
 
 // Split array into x<pivot and x>=pivot
@@ -230,7 +274,8 @@ NANOSORT_NOINLINE void BubbleSortW(It first, It last, Compare comp) {
 
 template <typename T, typename It, typename Compare>
 NANOSORT_NOINLINE void NetworkSort(It first, It last, Compare comp) {
-#define NANOSORT_PAIR(i, j) if (comp(e##i, e##j)) swap(e##i, e##j)
+#define NANOSORT_PAIR(i, j) \
+  if (comp(e##i, e##j)) swap(e##i, e##j)
 
   size_t n = last - first;
 
@@ -261,26 +306,34 @@ NANOSORT_NOINLINE void NetworkSort(It first, It last, Compare comp) {
       first[0] = e0, first[1] = e1;
       break;
 
-    default:
-    ;
+    default:;
   }
 
 #undef NANOSORT_PAIR
 }
 
-
 template <typename T, typename It, typename Compare>
 NANOSORT_NOINLINE void sort(It first, It last, Compare comp) {
   const size_t kSmallSortThreshold = 16;
 
-  // TODO: fall back to heap sort after a certain limit
+  // Sort array using divide & conquer
   while (last - first > kSmallSortThreshold) {
     T pivot = median5<T>(first, last, comp);
     It mid = partition(pivot, first, last, comp);
+    It midr = mid;
 
     // For skewed partitions compute new midpoint by separating equal elements
-    bool skew = mid - first <= (last - first) >> 3;
-    It midr = skew ? partition_rev(pivot, mid, last, comp) : mid;
+    if (mid - first <= (last - first) >> 3) {
+      midr = partition_rev(pivot, mid, last, comp);
+    }
+
+    // If the partition is still skewed, recompute pivot using median of medians
+    // This should guarantee an upper bound of NlogN
+    if (midr - first <= (last - first) >> 3) {
+      pivot = medianofm<T>(first, last, comp);
+      mid = partition(pivot, first, last, comp);
+      midr = partition_rev(pivot, mid, last, comp);
+    }
 
     // Recurse into smaller partition resulting in log2(N) recursion limit
     if (mid - first <= last - midr) {
