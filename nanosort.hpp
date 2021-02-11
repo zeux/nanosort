@@ -159,9 +159,9 @@ void small_sort(It first, It last, Compare comp) {
     for (size_t j = 2; j < i; j++) {
       T z = NANOSORT_MOVE(first[j]);
 
-      if (comp(z, x)) swap(z, x);
-      if (comp(z, y)) swap(z, y);
-      if (comp(x, y)) swap(x, y);
+      if (comp(x, z)) swap(x, z);
+      if (comp(y, z)) swap(y, z);
+      if (comp(y, x)) swap(y, x);
 
       first[j - 2] = NANOSORT_MOVE(z);
     }

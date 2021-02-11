@@ -9,23 +9,30 @@
 
 template <typename T, typename Compare = std::less<T> >
 void test_sort(const std::vector<T>& a, Compare comp = std::less<T>()) {
+  std::vector<T> hs = a;
+  nanosort_detail::heap_sort(hs.begin(), hs.end(), comp);
+
+  assert(std::is_sorted(hs.begin(), hs.end(), comp));
+
+  std::vector<T> ss = a;
+  nanosort_detail::small_sort<T>(ss.begin(), ss.end(), comp);
+
+  assert(std::is_sorted(ss.begin(), ss.end(), comp));
+
   std::vector<T> ns = a;
   nanosort(ns.begin(), ns.end(), comp);
 
   assert(std::is_sorted(ns.begin(), ns.end(), comp));
 
-  std::vector<T> hs = a;
-  nanosort_detail::sort_heap(hs.begin(), hs.end(), comp);
-
-  assert(std::is_sorted(hs.begin(), hs.end(), comp));
-
-  std::vector<T> ss = a;
-  std::stable_sort(ss.begin(), ss.end());
+  std::vector<T> es = a;
+  std::stable_sort(es.begin(), es.end());
   std::stable_sort(ns.begin(), ns.end());
   std::stable_sort(hs.begin(), hs.end());
+  std::stable_sort(ss.begin(), ss.end());
 
-  assert(ss == ns);
-  assert(ss == hs);
+  assert(es == ns);
+  assert(es == hs);
+  assert(es == ss);
 }
 
 int main() {
