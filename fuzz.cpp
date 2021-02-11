@@ -20,7 +20,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, size_t Size) {
 
   std::sort(ss.begin(), ss.end());
   nanosort(ns.begin(), ns.end());
-  nanosort_detail::sort_heap(hs.begin(), hs.end(), std::less<T>());
+  nanosort_detail::heap_sort(hs.begin(), hs.end(), std::less<T>());
 
   assert(ss == ns);
   assert(ss == hs);

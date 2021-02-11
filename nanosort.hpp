@@ -25,6 +25,12 @@
 #define NANOSORT_NOINLINE __attribute__((noinline))
 #endif
 
+#if __cplusplus >= 201103L
+#define NANOSORT_MOVE(v) static_cast<decltype(v)&&>(v)
+#else
+#define NANOSORT_MOVE(v) v
+#endif
+
 namespace nanosort_detail {
 
 struct Less {
@@ -46,15 +52,9 @@ struct IteratorTraits<T*> {
 
 template <typename T>
 NANOSORT_INLINE void swap(T& l, T& r) {
-#if __cplusplus >= 201103L
-  T t(static_cast<T&&>(l));
-  l = static_cast<T&&>(r);
-  r = static_cast<T&&>(t);
-#else
-  T t(l);
-  l = r;
-  r = t;
-#endif
+  T t(NANOSORT_MOVE(l));
+  l = NANOSORT_MOVE(r);
+  r = NANOSORT_MOVE(t);
 }
 
 // Return median of 5 elements in the array
@@ -69,7 +69,6 @@ NANOSORT_NOINLINE T median5(It first, It last, Compare comp) {
   T e3 = first[(n >> 2) * 3];
   T e4 = first[n - 1];
 
-  // 5-element median network
   if (comp(e1, e0)) swap(e1, e0);
   if (comp(e4, e3)) swap(e4, e3);
   if (comp(e3, e0)) swap(e3, e0);
@@ -109,7 +108,7 @@ NANOSORT_NOINLINE It partition_rev(T pivot, It first, It last, Compare comp) {
 
 // Push root down through the heap
 template <typename It, typename Compare>
-void sift_heap(It heap, size_t count, size_t root, Compare comp) {
+void heap_sift(It heap, size_t count, size_t root, Compare comp) {
   assert(count > 0);
   size_t last = (count - 1) >> 1;
 
@@ -133,199 +132,56 @@ void sift_heap(It heap, size_t count, size_t root, Compare comp) {
 
 // Sort array using heap sort
 template <typename It, typename Compare>
-NANOSORT_NOINLINE void sort_heap(It first, It last, Compare comp) {
+NANOSORT_NOINLINE void heap_sort(It first, It last, Compare comp) {
   if (first == last) return;
 
   It heap = first;
   size_t count = last - first;
 
   for (size_t i = count / 2; i > 0; --i) {
-    sift_heap(heap, count, i - 1, comp);
+    heap_sift(heap, count, i - 1, comp);
   }
 
   for (size_t i = count - 1; i > 0; --i) {
     swap(heap[0], heap[i]);
-    sift_heap(heap, i, 0, comp);
+    heap_sift(heap, i, 0, comp);
   }
 }
 
-// BubbleSort works better it has N(N-1)/2 stores, but x is updated in the
-// inner loop. This is cmp/cmov sequence making the inner loop 2 cycles.
-// TODO: auto, moves
-template <typename It, typename Compare>
-NANOSORT_NOINLINE void BubbleSort(It first, It last, Compare comp) {
-  auto n = last - first;
-  for (auto i = n; i > 1; i--) {
-    auto x = first[0];
-    for (decltype(n) j = 1; j < i; j++) {
-      auto y = first[j];
-      bool is_smaller = comp(y, x);
-      first[j - 1] = is_smaller ? y : x;
-      x = is_smaller ? x : y;
-    }
-    first[i - 1] = x;
-  }
-}
+template <typename T, typename It, typename Compare>
+NANOSORT_NOINLINE void small_sort(It first, It last, Compare comp) {
+  size_t n = last - first;
 
-// BubbleSort2 bubbles two elements at a time. This means it's doing N(N+1)/4
-// iterations and therefore much less stores. Correctly ordering the cmov's it
-// is still possible to execute the inner loop in 2 cycles with respect to
-// data dependencies. So in effect this cuts running time by 2x, even though
-// it's not cutting number of comparisons.
-// TODO: auto, moves
-template <typename It, typename Compare>
-NANOSORT_NOINLINE void BubbleSort2(It first, It last, Compare comp) {
-  auto n = last - first;
-  for (auto i = n; i > 1; i -= 2) {
-    auto x = first[0];
-    auto y = first[1];
+  for (size_t i = n; i > 1; i -= 2) {
+    T x = NANOSORT_MOVE(first[0]);
+    T y = NANOSORT_MOVE(first[1]);
     if (comp(y, x)) swap(y, x);
-    for (decltype(n) j = 2; j < i; j++) {
-      auto z = first[j];
-      bool is_smaller = comp(z, y);
-      auto w = is_smaller ? z : y;
-      y = is_smaller ? y : z;
-      is_smaller = comp(z, x);
-      first[j - 2] = is_smaller ? z : x;
-      x = is_smaller ? x : w;
-    }
-    first[i - 2] = x;
-    first[i - 1] = y;
-  }
-}
 
-template <typename It, typename Compare>
-NANOSORT_NOINLINE void SelectionSort(It first, It last, Compare comp) {
-  size_t n = last - first;
-  if (n <= 1) return;
+    for (size_t j = 2; j < i; j++) {
+      T z = NANOSORT_MOVE(first[j]);
 
-  for (size_t i = 0; i < n - 1; i++) {
-    size_t k = i;
-    for (size_t j = i + 1; j < n; j++) {
-      k = comp(first[j], first[k]) ? j : k;
-    }
-    swap(first[i], first[k]);
-  }
-}
+      if (comp(z, x)) swap(z, x);
+      if (comp(z, y)) swap(z, y);
+      if (comp(x, y)) swap(x, y);
 
-template <typename It, typename Compare>
-NANOSORT_NOINLINE void CocktailSort(It first, It last, Compare comp) {
-  size_t n = last - first;
-  if (n <= 1) return;
-  auto arr = &*first;
-  for (size_t i = 0, j = n - 1; i < j; i++, j--) {
-    size_t min = i, max = i;
-    for (size_t k = i + 1; k <= j; k++) {
-      max = comp(arr[max], arr[k]) ? k : max;
-      min = comp(arr[k], arr[min]) ? k : min;
+      first[j - 2] = NANOSORT_MOVE(z);
     }
 
-    // shifting the min.
-    swap(arr[i], arr[min]);
-
-    // Shifting the max. The equal condition
-    // happens if we shifted the max to arr[min_i]
-    // in the previous swap.
-    swap(arr[j], arr[i == max ? min : max]);
+    first[i - 2] = NANOSORT_MOVE(x);
+    first[i - 1] = NANOSORT_MOVE(y);
   }
-}
-
-template <typename T, typename It, typename Compare>
-NANOSORT_NOINLINE void InsertionSort(It begin, It end, Compare comp) {
-  if (begin == end) return;
-
-  for (It it = begin + 1; it != end; ++it) {
-    T val = *it;
-    It hole = it;
-    while (hole > begin && comp(val, *(hole - 1))) {
-      *hole = *(hole - 1);
-      hole--;
-    }
-    *hole = val;
-  }
-}
-
-template <typename It, typename Compare>
-NANOSORT_NOINLINE void GnomeSort(It begin, It end, Compare comp) {
-  It pos = begin;
-  while (pos != end) {
-    if (pos == begin || !comp(*pos, *(pos - 1)))
-      pos++;
-    else {
-      swap(*pos, *(pos - 1));
-      pos--;
-    }
-  }
-}
-
-template <typename It, typename Compare>
-NANOSORT_NOINLINE void BubbleSortW(It first, It last, Compare comp) {
-  size_t n = last - first;
-  while (n > 1) {
-    size_t newn = 0;
-    for (size_t i = 1; i < n; ++i) {
-      if (comp(first[i], first[i - 1])) {
-        swap(first[i], first[i - 1]);
-        newn = i;
-      }
-    }
-    n = newn;
-  }
-}
-
-template <typename T, typename It, typename Compare>
-NANOSORT_NOINLINE void NetworkSort(It first, It last, Compare comp) {
-#define NANOSORT_PAIR(i, j) \
-  if (comp(e##i, e##j)) swap(e##i, e##j)
-
-  size_t n = last - first;
-
-  T e0, e1, e2, e3;
-
-  switch (n) {
-    case 4:
-      e0 = first[0], e1 = first[1], e2 = first[2], e3 = first[3];
-      NANOSORT_PAIR(0, 1);
-      NANOSORT_PAIR(2, 3);
-      NANOSORT_PAIR(0, 2);
-      NANOSORT_PAIR(1, 3);
-      NANOSORT_PAIR(1, 2);
-      first[0] = e0, first[1] = e1, first[2] = e2, first[3] = e3;
-      break;
-
-    case 3:
-      e0 = first[0], e1 = first[1], e2 = first[2];
-      NANOSORT_PAIR(0, 1);
-      NANOSORT_PAIR(0, 2);
-      NANOSORT_PAIR(1, 2);
-      first[0] = e0, first[1] = e1, first[2] = e2;
-      break;
-
-    case 2:
-      e0 = first[0], e1 = first[1];
-      NANOSORT_PAIR(0, 1);
-      first[0] = e0, first[1] = e1;
-      break;
-
-    default:;
-  }
-
-#undef NANOSORT_PAIR
 }
 
 template <typename T, typename It, typename Compare>
 NANOSORT_NOINLINE void sort(It first, It last, size_t limit, Compare comp) {
-  const size_t kSmallSortThreshold = 16;
-
   for (;;) {
-    if (last - first <= kSmallSortThreshold) {
-      // TODO: evaluate alternatives
-      BubbleSort2(first, last, comp);
+    if (last - first < 16) {
+      small_sort<T>(first, last, comp);
       return;
     }
 
     if (limit == 0) {
-      nanosort_detail::sort_heap(first, last, comp);
+      heap_sort(first, last, comp);
       return;
     }
 
