@@ -13,6 +13,7 @@
  */
 #pragma once
 
+#include <assert.h>
 #include <stddef.h>
 
 // TODO: These are profiling helpers, remove before release
@@ -60,6 +61,7 @@ NANOSORT_INLINE void swap(T& l, T& r) {
 template <typename T, typename It, typename Compare>
 NANOSORT_NOINLINE T median5(It first, It last, Compare comp) {
   size_t n = last - first;
+  assert(n >= 5);
 
   T e0 = first[(n >> 2) * 0];
   T e1 = first[(n >> 2) * 1];
@@ -121,6 +123,7 @@ NANOSORT_NOINLINE T medianofm(It first, It last, Compare comp) {
     n = j;
   }
 
+  assert(n > 0);
   return a[0];
 }
 
@@ -323,16 +326,17 @@ NANOSORT_NOINLINE void sort(It first, It last, Compare comp) {
     It midr = mid;
 
     // For skewed partitions compute new midpoint by separating equal elements
-    if (mid - first <= (last - first) >> 3) {
+    size_t skew_limit = (last - first) >> 3;
+    if (mid - first <= skew_limit) {
       midr = partition_rev(pivot, mid, last, comp);
+    }
 
-      // If partition is still skewed, recompute pivot using median of medians
-      // This should guarantee an upper bound of NlogN
-      if (midr - first <= (last - first) >> 3) {
-        pivot = medianofm<T>(first, last, comp);
-        mid = partition(pivot, first, last, comp);
-        midr = partition_rev(pivot, mid, last, comp);
-      }
+    // If partition is still skewed, recompute pivot using median of medians
+    // This should guarantee an upper bound of NlogN
+    if (mid - first <= skew_limit || last - midr <= skew_limit) {
+      pivot = medianofm<T>(first, last, comp);
+      mid = partition(pivot, first, last, comp);
+      midr = partition_rev(pivot, mid, last, comp);
     }
 
     // Recurse into smaller partition resulting in log2(N) recursion limit
