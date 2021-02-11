@@ -325,14 +325,14 @@ NANOSORT_NOINLINE void sort(It first, It last, Compare comp) {
     // For skewed partitions compute new midpoint by separating equal elements
     if (mid - first <= (last - first) >> 3) {
       midr = partition_rev(pivot, mid, last, comp);
-    }
 
-    // If the partition is still skewed, recompute pivot using median of medians
-    // This should guarantee an upper bound of NlogN
-    if (midr - first <= (last - first) >> 3) {
-      pivot = medianofm<T>(first, last, comp);
-      mid = partition(pivot, first, last, comp);
-      midr = partition_rev(pivot, mid, last, comp);
+      // If partition is still skewed, recompute pivot using median of medians
+      // This should guarantee an upper bound of NlogN
+      if (midr - first <= (last - first) >> 3) {
+        pivot = medianofm<T>(first, last, comp);
+        mid = partition(pivot, first, last, comp);
+        midr = partition_rev(pivot, mid, last, comp);
+      }
     }
 
     // Recurse into smaller partition resulting in log2(N) recursion limit
