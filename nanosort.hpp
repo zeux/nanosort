@@ -16,13 +16,12 @@
 #include <assert.h>
 #include <stddef.h>
 
-// TODO: These are profiling helpers, remove before release
 #ifdef _MSC_VER
-#define NANOSORT_INLINE __forceinline
 #define NANOSORT_NOINLINE __declspec(noinline)
+#define NANOSORT_UNLIKELY(c) (c)
 #else
-#define NANOSORT_INLINE __attribute__((always_inline))
 #define NANOSORT_NOINLINE __attribute__((noinline))
+#define NANOSORT_UNLIKELY(c) __builtin_expect(c, 0)
 #endif
 
 #if __cplusplus >= 201103L
@@ -51,7 +50,7 @@ struct IteratorTraits<T*> {
 };
 
 template <typename T>
-NANOSORT_INLINE void swap(T& l, T& r) {
+void swap(T& l, T& r) {
   T t(NANOSORT_MOVE(l));
   l = NANOSORT_MOVE(r);
   r = NANOSORT_MOVE(t);
@@ -59,7 +58,7 @@ NANOSORT_INLINE void swap(T& l, T& r) {
 
 // Return median of 5 elements in the array
 template <typename T, typename It, typename Compare>
-NANOSORT_NOINLINE T median5(It first, It last, Compare comp) {
+T median5(It first, It last, Compare comp) {
   size_t n = last - first;
   assert(n >= 5);
 
@@ -84,7 +83,7 @@ NANOSORT_NOINLINE T median5(It first, It last, Compare comp) {
 
 // Split array into x<pivot and x>=pivot
 template <typename T, typename It, typename Compare>
-NANOSORT_NOINLINE It partition(T pivot, It first, It last, Compare comp) {
+It partition(T pivot, It first, It last, Compare comp) {
   It res = first;
   for (It it = first; it != last; ++it) {
     bool r = comp(*it, pivot);
@@ -96,7 +95,7 @@ NANOSORT_NOINLINE It partition(T pivot, It first, It last, Compare comp) {
 
 // Splits array into x<=pivot and x>pivot
 template <typename T, typename It, typename Compare>
-NANOSORT_NOINLINE It partition_rev(T pivot, It first, It last, Compare comp) {
+It partition_rev(T pivot, It first, It last, Compare comp) {
   It res = first;
   for (It it = first; it != last; ++it) {
     bool r = comp(pivot, *it);
@@ -132,7 +131,7 @@ void heap_sift(It heap, size_t count, size_t root, Compare comp) {
 
 // Sort array using heap sort
 template <typename It, typename Compare>
-NANOSORT_NOINLINE void heap_sort(It first, It last, Compare comp) {
+void heap_sort(It first, It last, Compare comp) {
   if (first == last) return;
 
   It heap = first;
@@ -149,7 +148,7 @@ NANOSORT_NOINLINE void heap_sort(It first, It last, Compare comp) {
 }
 
 template <typename T, typename It, typename Compare>
-NANOSORT_NOINLINE void small_sort(It first, It last, Compare comp) {
+void small_sort(It first, It last, Compare comp) {
   size_t n = last - first;
 
   for (size_t i = n; i > 1; i -= 2) {
@@ -173,14 +172,14 @@ NANOSORT_NOINLINE void small_sort(It first, It last, Compare comp) {
 }
 
 template <typename T, typename It, typename Compare>
-NANOSORT_NOINLINE void sort(It first, It last, size_t limit, Compare comp) {
+void sort(It first, It last, size_t limit, Compare comp) {
   for (;;) {
     if (last - first < 16) {
       small_sort<T>(first, last, comp);
       return;
     }
 
-    if (limit == 0) {
+    if (NANOSORT_UNLIKELY(limit == 0)) {
       heap_sort(first, last, comp);
       return;
     }
@@ -189,8 +188,10 @@ NANOSORT_NOINLINE void sort(It first, It last, size_t limit, Compare comp) {
     It mid = partition(pivot, first, last, comp);
 
     // For skewed partitions compute new midpoint by separating equal elements
-    bool skew = mid - first <= (last - first) >> 3;
-    It midr = skew ? partition_rev(pivot, mid, last, comp) : mid;
+    It midr = mid;
+    if (NANOSORT_UNLIKELY(mid - first <= (last - first) >> 3)) {
+      midr = partition_rev(pivot, mid, last, comp);
+    }
 
     // Per MSVC STL, this allows 1.5 log2(N) recursive steps
     limit = (limit >> 1) + (limit >> 2);
@@ -208,13 +209,13 @@ NANOSORT_NOINLINE void sort(It first, It last, size_t limit, Compare comp) {
 }  // namespace nanosort_detail
 
 template <typename It, typename Compare>
-NANOSORT_NOINLINE void nanosort(It first, It last, Compare comp) {
+void nanosort(It first, It last, Compare comp) {
   typedef typename nanosort_detail::IteratorTraits<It>::value_type T;
   nanosort_detail::sort<T>(first, last, last - first, comp);
 }
 
 template <typename It>
-NANOSORT_NOINLINE void nanosort(It first, It last) {
+void nanosort(It first, It last) {
   typedef typename nanosort_detail::IteratorTraits<It>::value_type T;
   nanosort_detail::sort<T>(first, last, last - first, nanosort_detail::Less());
 }
