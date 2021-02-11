@@ -113,6 +113,9 @@ int main() {
   for (size_t i = 0; i < test.size(); ++i) test[i] = uint32_t(i);
   bench("sorted int", test);
 
+  for (size_t i = 0; i < 100; ++i) test[pcg32_random_r(&rng) % test.size()] = 0;
+  bench("sroted int", test);
+
   for (size_t i = 0; i < test.size(); ++i)
     test[i] = (i % 100 == 0) ? pcg32_random_r(&rng) : test[i - 1] + 1;
   bench("run100 int", test);
