@@ -50,7 +50,7 @@ uint32_t pcg32_random_r(pcg32_random_t *rng) {
 }
 
 template <typename T, typename Sort>
-void bench(const std::string &name, Sort sort, const std::vector<T> &data) {
+double runbench(Sort sort, const std::vector<T> &data) {
   double divider = data.size() * log2(double(data.size()));
 
   std::vector<T> copy(data.size());
@@ -68,23 +68,19 @@ void bench(const std::string &name, Sort sort, const std::vector<T> &data) {
     if (ts1 - ts0 < time || time == 0) time = ts1 - ts0;
   }
 
-  printf("%s: %.2f ns/op (%.2f ms total)\n", name.c_str(), time * 1e9 / divider,
-         time * 1e3);
+  return time * 1e9 / divider;
 }
 
 template <typename T>
 void bench(const std::string &name, const std::vector<T> &data) {
-  bench(
-      name + ", std:sort", [](auto beg, auto end) { std::sort(beg, end); },
-      data);
-  bench(
-      name + ", pdqsort ", [](auto beg, auto end) { pdqsort(beg, end); }, data);
-  bench(
-      name + ", expgrbns",
+  double t1 = runbench([](auto beg, auto end) { std::sort(beg, end); }, data);
+  double t2 = runbench([](auto beg, auto end) { pdqsort(beg, end); }, data);
+  double t3 = runbench(
       [](auto beg, auto end) { exp_gerbens::QuickSort(beg, end); }, data);
-  bench(
-      name + ", nanosort", [](auto beg, auto end) { nanosort(beg, end); },
-      data);
+  double t4 = runbench([](auto beg, auto end) { nanosort(beg, end); }, data);
+
+  printf("%s | %.2f ns/op | %.2f ns/op | %.2f ns/op | %.2f ns/op\n",
+         name.c_str(), t1, t2, t3, t4);
 }
 
 struct Pair {
