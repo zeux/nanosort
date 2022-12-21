@@ -2,7 +2,7 @@
 
 ## Algorithm
 
-nanosort aims to be a fast comparison-based sorting algorithm, tuned for POD types of reasonably small sizes. nanosort implements an algorithm similar to introsort - divide & conquer quick sort with small subarrays sorted using a quadratic sort, and a fallback to heap sort to guarantee worst case NlogN execution time. To get high performance, nanosort uses the following techniques:
+nanosort aims to be a fast comparison-based sorting algorithm, tuned for POD types of reasonably small sizes. nanosort implements an algorithm similar to introsort - divide & conquer quick sort with small subarrays sorted using a quadratic sort, and a fallback to heap sort to guarantee worst case NlogN execution time. Like the aforementioned algorithms, nanosort is *not* stable. To get high performance, nanosort uses the following techniques:
 
 - Instead of classical partition algorithms, nanosort uses a Lomuto-inspired branchless partition. Due to unique construction, this partition results in constant superb performance given minimal code size.
 - Instead of classical insertion sort, nanosort uses a 2-at-a-time bubble sort discovered by Gerben Stavenga; branchless implementation of this algorithm similarly results in excellent performance with reasonable code size.
